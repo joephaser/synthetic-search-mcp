@@ -83,3 +83,7 @@ Formatted search results including:
 - URL
 - Publication date
 - Snippet text
+
+## License
+
+MIT License - see [LICENSE](LICENSE) file for details.
