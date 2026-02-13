@@ -19,6 +19,7 @@ interface SearchResponse {
 
 const SYNTHETIC_API_KEY = process.env.SYNTHETIC_API_KEY;
 const SYNTHETIC_SEARCH_URL = "https://api.synthetic.new/v2/search";
+const REQUEST_TIMEOUT_MS = 30000;
 
 if (!SYNTHETIC_API_KEY) {
   console.error("Error: SYNTHETIC_API_KEY environment variable is required");
@@ -62,17 +63,48 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
 
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
   if (request.params.name === "synthetic_search") {
-    const { query } = request.params.arguments as { query: string };
+    const args = request.params.arguments as { query?: unknown };
+    const query = args.query;
+
+    if (typeof query !== "string" || query.trim().length === 0) {
+      return {
+        content: [
+          {
+            type: "text",
+            text: "Error: query must be a non-empty string",
+          },
+        ],
+        isError: true,
+      };
+    }
+
+    if (query.length > 2000) {
+      return {
+        content: [
+          {
+            type: "text",
+            text: "Error: query must be 2000 characters or less",
+          },
+        ],
+        isError: true,
+      };
+    }
 
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
       const response = await fetch(SYNTHETIC_SEARCH_URL, {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${SYNTHETIC_API_KEY}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ query }),
+        body: JSON.stringify({ query: query.trim() }),
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -99,7 +131,16 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         ],
       };
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      let errorMessage: string;
+      if (error instanceof Error) {
+        if (error.name === "AbortError") {
+          errorMessage = "Search request timed out after 30 seconds";
+        } else {
+          errorMessage = error.message;
+        }
+      } else {
+        errorMessage = String(error);
+      }
       return {
         content: [
           {

@@ -32,8 +32,6 @@ test("Synthetic Search API - should return search results", async () => {
     assert.ok(result.text, "Result should have text");
     assert.ok(result.published, "Result should have published date");
   }
-  
-  console.log("✓ Search API test passed");
 });
 
 test("Synthetic Search API - should handle invalid API key", async () => {
@@ -47,5 +45,4 @@ test("Synthetic Search API - should handle invalid API key", async () => {
   });
 
   assert.strictEqual(response.ok, false, "Should fail with invalid API key");
-  console.log("✓ Invalid API key test passed");
 });
