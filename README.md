@@ -105,6 +105,31 @@ npm test
 
 ## ⚙️ Configuration
 
+### Claude Code CLI Integration
+
+Add this MCP server to your Claude Code configuration using the `/mcp` command:
+
+```bash
+# Add the MCP server interactively
+/mcp add synthetic-search node /path/to/synthetic-search-mcp/dist/index.js
+
+# Or edit ~/.claude/CLAUDE.md and add:
+```json
+{
+  "mcpServers": {
+    "synthetic-search": {
+      "command": "node",
+      "args": ["/path/to/synthetic-search-mcp/dist/index.js"],
+      "env": {
+        "SYNTHETIC_API_KEY": "your-api-key-here"
+      }
+    }
+  }
+}
+```
+
+> **Note:** Replace `/path/to/synthetic-search-mcp` with the actual path to your installation and `your-api-key-here` with your Synthetic API key.
+
 ### OpenCode Integration
 
 Add this MCP server to your OpenCode configuration at `~/.config/opencode/opencode.json`:
