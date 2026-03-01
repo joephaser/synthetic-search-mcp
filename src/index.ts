@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import "dotenv/config";
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import {
@@ -20,6 +21,37 @@ interface SearchResponse {
 const SYNTHETIC_API_KEY = process.env.SYNTHETIC_API_KEY;
 const SYNTHETIC_SEARCH_URL = "https://api.synthetic.new/v2/search";
 const REQUEST_TIMEOUT_MS = 30000;
+const MAX_RETRIES = 3;
+const INITIAL_RETRY_DELAY_MS = 1000;
+
+async function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function fetchWithRetry(
+  url: string,
+  options: RequestInit,
+  retries: number = MAX_RETRIES,
+  delay: number = INITIAL_RETRY_DELAY_MS
+): Promise<Response> {
+  try {
+    const response = await fetch(url, options);
+
+    // Retry on 5xx errors or network failures
+    if (!response.ok && response.status >= 500 && retries > 0) {
+      throw new Error(`Server error: ${response.status}`);
+    }
+
+    return response;
+  } catch (error) {
+    if (retries <= 0) {
+      throw error;
+    }
+
+    await sleep(delay);
+    return fetchWithRetry(url, options, retries - 1, delay * 2);
+  }
+}
 
 if (!SYNTHETIC_API_KEY) {
   console.error("Error: SYNTHETIC_API_KEY environment variable is required");
@@ -94,7 +126,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
-      const response = await fetch(SYNTHETIC_SEARCH_URL, {
+      const response = await fetchWithRetry(SYNTHETIC_SEARCH_URL, {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${SYNTHETIC_API_KEY}`,
