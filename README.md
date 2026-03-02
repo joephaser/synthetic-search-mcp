@@ -107,17 +107,20 @@ npm test
 
 ### Claude Code CLI Integration
 
-Add this MCP server to your Claude Code configuration using the `/mcp` command:
+Add this MCP server to your Claude Code configuration using the `claude mcp add` command:
 
 ```bash
-# Add the MCP server interactively
-/mcp add synthetic-search node /path/to/synthetic-search-mcp/dist/index.js
+# Add the MCP server with your API key
+claude mcp add --transport stdio --env SYNTHETIC_API_KEY=your-api-key-here synthetic-search -- node /path/to/synthetic-search-mcp/dist/index.js
+```
 
-# Or edit ~/.claude/CLAUDE.md and add:
+Or manually edit `~/.claude.json` and add:
+
 ```json
 {
   "mcpServers": {
     "synthetic-search": {
+      "type": "stdio",
       "command": "node",
       "args": ["/path/to/synthetic-search-mcp/dist/index.js"],
       "env": {
